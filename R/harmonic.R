@@ -19,12 +19,10 @@
 #' any dates inherent in the layers.
 #'
 #' @importFrom terra nlyr
-#'
-harmonic <- function(r, harmonic_value, variable, window, ...){
-  UseMethod('harmonic', r)
-}
+#' @export
+harmonic <- function(r, harmonic_value = 2, variable = 'all', window = NULL, ...){
 
-harmonic.SpatRaster <- function(r, harmonic_value = 2, variable = 'all', window = NULL, ...){
+  stopifnot(inherits(r, 'SpatRaster'))
 
   #validate harmonic value
   stopifnot(is.numeric(harmonic_value) && length(harmonic_value) >0 &&
@@ -44,10 +42,10 @@ harmonic.SpatRaster <- function(r, harmonic_value = 2, variable = 'all', window 
   #for each group, compute things
   res = lapply(chnks, function(x){
 
-    ras = subset(r, x)
+    ras = terra::subset(r, x)
 
     #for each cell, compute the various doodads
-    ras = app(ras, function(y) harmonic_regression(y, harmonic_value = harmonic_value, variable = variable))
+    ras = terra::app(ras, function(y) harmonic_regression(y, harmonic_value = harmonic_value, variable = variable))
 
     ras
   })
@@ -72,7 +70,7 @@ harmonic.SpatRaster <- function(r, harmonic_value = 2, variable = 'all', window 
 
   }
 
-  res = rast(res)
+  res = terra::rast(res)
 
 }
 

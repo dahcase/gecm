@@ -5,7 +5,7 @@
 \alias{harmonic_regression}
 \title{Compute harmonic regression}
 \usage{
-harmonic(r, harmonic_value, variable, window, ...)
+harmonic(r, harmonic_value = 2, variable = "all", window = NULL, ...)
 
 harmonic_regression(y, harmonic_value = 2, variable = "all")
 }
