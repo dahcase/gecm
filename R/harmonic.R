@@ -76,6 +76,7 @@ harmonic.SpatRaster <- function(r, harmonic_value = 2, variable = 'all', window 
 
 }
 
+#' @rdname harmonic
 harmonic_regression = function(y, harmonic_value = 2, variable = 'all'){
 
   if(!all(is.na(y)) && length(y)>1){
