@@ -10,13 +10,12 @@
 #' @details
 #' The following values are possibly returned from harmonic:
 #'    0. 'all': return all valid terms
-#'    1. 'A': sine term
-#'    2. 'B': cosine term
-#'    3. 'A0': mean/intercept term
+#'    1. 'A0': Average; base mean change in the system
+#'    2. 'A1': Period specific seasonality
+#'    3. 'A2': Within period seasonality
+#'    4. 'P1': Timing of A1 peak (e.g. peak of season)
+#'    5. 'P2': Timing of A2 peak (e.g. change in dynamics)
 #'
-#' Notes to self:
-#' Window option likely assumes equally spaced layers. It doesn't take into account
-#' any dates inherent in the layers.
 #'
 #' @importFrom terra nlyr
 #' @export
