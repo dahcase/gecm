@@ -12,7 +12,7 @@ implemented:
 
 1.  Harmonic Regression/Seasonal Trends Analysis: Change detection
     through analysis of reoccurring signals.
-2.  Prohphet: Detection of spatially and/or temporally contiguous groups
+2.  Prophet: Detection of spatially and/or temporally contiguous groups
     of anomalies
 3.  Space beats time: Detection of short-term/abrupt change via
     comparison of spatial and temporal residuals
