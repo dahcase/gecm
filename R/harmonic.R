@@ -68,8 +68,13 @@ harmonic <- function(r, harmonic_value = 2, variable = 'all', window = NULL, ...
     names(res[[x]]) = nnn
 
   }
+  nnn = lapply(res, names)
+  nnn = unlist(nnn)
 
   res = terra::rast(res)
+  names(res) <- nnn
+
+  res
 
 }
 
