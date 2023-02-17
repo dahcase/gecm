@@ -45,6 +45,8 @@ pixel_fit = function(x, dates, na.thresh = .25, outputs, ...){
 #' @param filename file path. Path to the output file, if using
 #' @param overwrite logical. Determines whether filename gets overwritten
 #' @param wopt list. Passed to terra::app
+#' @return rast
+#' @export
 prophet_rast = function(r, dates, ncores = 1, na.thresh = .25, outputs = c('yhat'), ..., filename = NULL, overwrite = FALSE, wopt = list()){
 
   #compute over the pixels
@@ -59,3 +61,68 @@ prophet_rast = function(r, dates, ncores = 1, na.thresh = .25, outputs = c('yhat
 
   return(res)
 }
+#' Compute anomalies from the results of prophet
+#' @param yhat rast. Data cube of yhat predictions from \code{prophet_rast}
+#' @param base rast. Data cube of "raw" values initially passed into \code{prophet_rast} as \code{r}
+#' @param threh numeric. Anomly threshold-- Number of standard deviations an estimate must be >= away from the mean
+#' @param groups character. One or more of 'none', 'space', 'time', 'combined' detailing which anamoly data cubes should be returned
+#' @param filename_prefix file path. Optional. Passed to terra::app, terra::patches, and a possible call to terra::writeRaster. File name (including directory) prefix for output geotiffs
+#' @param overwrite logical. Optional. Passed to terra::app, terra::patches, and a possible call to terra::writeRaster
+#' @param wotps named list. Optional. Passed to terra::app, terra::patches, and a possible call to terra::writeRaster. Options passed to writeRaster
+#' @return a list of rast(bricks)
+#' @export
+find_anomaly = function(yhat, base, thresh, groups = c('none', 'space', 'time', 'combined'), filename = NULL, overwrite = F, wopts = NULL){
+  grps = match.arg(groups, c('none', 'space', 'time', 'combined'), several.ok = TRUE)
+  stopifnot(thresh>0)
+
+  output_opts = function(fp, name = 'rast', overwrite, wopts){
+    if(is.null(fp)){
+      return(list(NULL, NULL, NULL))
+    }else{
+      return(list(file.path(fp, paste0(name, '.tif')),
+           overwrite,
+           wopts))
+    }
+  }
+
+  # compute residuals and the associated standard deviation
+  resid = yhat - base
+  sd_oo = output_opts(filename_prefix, 'sdresid', overwrite, wopts)
+  app_call = append(list(x = resid, fun = sd, na.rm = T), sd_oo)
+  sdresid = do.call(app, app_call)
+
+  # find anomalies
+  anomaly = resid>(thresh*sdresid) | resid<(-1 * thresh *sdresid)
+
+  # if only the base anomalies were requested
+  if(all(grps == 'none')) return(sdresid)
+
+  if(c('time', 'combined') %in% grps){
+    leadfun = function(x){
+      lag = data.table::shift(x, type = 'lead') + x >=2
+      return(lag)
+    }
+    at_oo = output_opts(filename_prefix, 'anomaly_time', overwrite, wopts)
+    a_time_call = append(list(x = anomaly, fun = leadfun), at_oo)
+    a_time = do.call(app, a_time_call)
+  }
+  if(c('space', 'combined') %in% grps){
+    as_oo = output_opts(filename_prefix, 'anomaly_space', overwrite,wopts)
+    a_space_call = append(list(x = anomaly, zeroAsNA = TRUE), as_oo)
+    a_space = do.call(app, a_space_call)
+    a_space = a_space >0
+
+  }
+
+  if('combined' %in% grps){
+    a_combo = a_space & a_time
+  }
+
+  obj = sapply(c('a_time', 'a_space', 'a_combo'), exists)
+  obj = c('a_time', 'a_space', 'a_combo')[obj]
+  obj = lapply(obj, get)
+
+  obj
+
+}
+
