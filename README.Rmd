@@ -22,7 +22,6 @@ The `gecm` package contains functions for the analysis of change within raster t
 
 1. Harmonic Regression/Seasonal Trends Analysis: Change detection through analysis of reoccurring signals.
 2. Prophet: Detection of spatially and/or temporally contiguous groups of anomalies
-3. Space beats time: Detection of short-term/abrupt change via comparison of spatial and temporal residuals
 
 ## Installation
 
@@ -32,14 +31,14 @@ You can install the development version from [GitHub](https://github.com/) with:
 # install.packages("devtools")
 devtools::install_github("dahcase/gecm")
 ```
-## Example
+## Example (Harmonic Regression)
 
 ```{r example}
 library(gecm)
 library(terra)
 
 #Load a simple raster time series
-ouaga = system.file('extdata/ouaga.tif', package = 'gecm')
+ouaga = system.file('extdata/ouaga_dates.tif', package = 'gecm')
 ouaga = rast(ouaga)
 
 #plot a few layers
@@ -61,6 +60,24 @@ res = harmonic(r = ouaga,
 A1s = grep('A1', names(res))
 
 plot(subset(res, A1s))
+
+
+```
+
+## Example (Prophet)
+
+```{r}
+library('gecm')
+library('terra')
+# Load data
+ouaga = system.file('extdata/ouaga_dates.tif', package = 'gecm')
+ouaga = rast(ouaga)
+
+# compute yhats
+pouaga = prophet_rast(ouaga, as.Date(names(ouaga), '%Y_%m_%d'))
+
+# compute anomalies
+aouaga = find_anomaly(pouaga, ouaga, thresh = 1.65, groups = c('space', 'time', 'combined'))
 
 
 ```

@@ -5,7 +5,15 @@
 \alias{harmonic_regression}
 \title{Compute harmonic regression}
 \usage{
-harmonic(r, harmonic_value = 2, variable = "all", window = NULL, ...)
+harmonic(
+  r,
+  harmonic_value = 2,
+  variable = "all",
+  window = NULL,
+  filename_prefix = NULL,
+  overwrite = F,
+  wopts = NULL
+)
 
 harmonic_regression(y, harmonic_value = 2, variable = "all")
 }
@@ -18,7 +26,11 @@ harmonic_regression(y, harmonic_value = 2, variable = "all")
 
 \item{window}{numeric. Size of the window of consideration. Chunks the input data cube into cubes with `window` layers/timesteps}
 
-\item{...}{other methods}
+\item{filename_prefix}{file path. Optional. Passed to terra::app, terra::patches, and a possible call to terra::writeRaster. File name (including directory) prefix for output geotiffs}
+
+\item{overwrite}{logical. Optional. Passed to terra::app}
+
+\item{wotps}{named list. Optional. Passed to terra::app}
 }
 \description{
 Compute harmonic regression

@@ -5,7 +5,6 @@
 #' @param na.thresh numeric. Minimum proportional of missingness acceptable for a pixel
 #' @param outputs character. The prophet results to be captured/returned
 #' @param ... other arguments passed to prophet
-#' @details
 #'
 #' @importFrom prophet prophet
 #' @importFrom data.table melt
@@ -47,13 +46,18 @@ pixel_fit = function(x, dates, na.thresh = .25, outputs, ...){
 #' @param wopt list. Passed to terra::app
 #' @return rast
 #' @export
-prophet_rast = function(r, dates, ncores = 1, na.thresh = .25, outputs = c('yhat'), ..., filename = NULL, overwrite = FALSE, wopt = list()){
+prophet_rast = function(r, dates, ncores = 1, na.thresh = .25, outputs = c('yhat'), ..., filename = "", overwrite = FALSE, wopt = list()){
 
   #compute over the pixels
   #function(x) pixel_fit(x, dates, na.thresh = na.thresh, outputs, ...)
   dates = dates
-  res = app(r, pixel_fit, dates = dates, na.thresh = na.thresh, outputs = outputs, ...,
-            cores = ncores, filename = filename, overwrite = overwrite, wopt = wopt)
+  if(filename != ''){
+    res = app(r, pixel_fit, dates = dates, na.thresh = na.thresh, outputs = outputs, ...,
+              cores = ncores,filename = filename, overwrite = overwrite, wopt = wopt)
+  }else{
+    res = app(r, pixel_fit, dates = dates, na.thresh = na.thresh, outputs = outputs, ...,
+              cores = ncores)
+  }
 
   outnames = lapply(outputs, function(z) paste0(z, '_', dates))
   outnames = unlist(outnames)
@@ -64,15 +68,15 @@ prophet_rast = function(r, dates, ncores = 1, na.thresh = .25, outputs = c('yhat
 #' Compute anomalies from the results of prophet
 #' @param yhat rast. Data cube of yhat predictions from \code{prophet_rast}
 #' @param base rast. Data cube of "raw" values initially passed into \code{prophet_rast} as \code{r}
-#' @param threh numeric. Anomly threshold-- Number of standard deviations an estimate must be >= away from the mean
+#' @param thresh numeric. Anomly threshold-- Number of standard deviations an estimate must be >= away from the mean
 #' @param groups character. One or more of 'none', 'space', 'time', 'combined' detailing which anamoly data cubes should be returned
 #' @param filename_prefix file path. Optional. Passed to terra::app, terra::patches, and a possible call to terra::writeRaster. File name (including directory) prefix for output geotiffs
 #' @param overwrite logical. Optional. Passed to terra::app, terra::patches, and a possible call to terra::writeRaster
 #' @param wotps named list. Optional. Passed to terra::app, terra::patches, and a possible call to terra::writeRaster. Options passed to writeRaster
 #' @return a list of rast(bricks)
 #' @export
-find_anomaly = function(yhat, base, thresh, groups = c('none', 'space', 'time', 'combined'), filename_prefix = NULL, overwrite = F, wopts = NULL){
-  grps = match.arg(groups, c('none', 'space', 'time', 'combined'), several.ok = TRUE)
+find_anomaly = function(yhat, base, thresh = 1.65, groups = c('anomaly', 'space', 'time', 'combined'), filename_prefix = NULL, overwrite = F, wopts = NULL){
+  grps = match.arg(groups, c('anomaly', 'space', 'time', 'combined'), several.ok = TRUE)
   stopifnot(thresh>0)
 
   # compute residuals and the associated standard deviation
@@ -87,7 +91,7 @@ find_anomaly = function(yhat, base, thresh, groups = c('none', 'space', 'time', 
   # if only the base anomalies were requested
   if(all(grps == 'none')) return(sdresid)
 
-  if(c('time', 'combined') %in% grps){
+  if(any(c('time', 'combined') %in% grps)){
     leadfun = function(x){
       lag = data.table::shift(x, type = 'lead') + x >=2
       return(lag)
@@ -97,11 +101,11 @@ find_anomaly = function(yhat, base, thresh, groups = c('none', 'space', 'time', 
     a_time_call = a_time_call[!sapply(a_time_call, is.null)]
     a_time = do.call(app, a_time_call)
   }
-  if(c('space', 'combined') %in% grps){
+  if(any(c('space', 'combined') %in% grps)){
     as_oo = output_opts(filename_prefix, 'anomaly_space', overwrite,wopts)
     a_space_call = append(list(x = anomaly, zeroAsNA = TRUE), as_oo)
     a_space_call = a_space_call[!sapply(a_space_call, is.null)]
-    a_space = do.call(app, a_space_call)
+    a_space = do.call(terra::patches, a_space_call)
     a_space = a_space >0
 
   }
@@ -110,9 +114,10 @@ find_anomaly = function(yhat, base, thresh, groups = c('none', 'space', 'time', 
     a_combo = a_space & a_time
   }
 
-  obj = sapply(c('a_time', 'a_space', 'a_combo'), exists)
-  obj = c('a_time', 'a_space', 'a_combo')[obj]
-  obj = lapply(obj, get)
+  pos_objs = c('anomaly' = 'anomaly', 'time' = 'a_time','space' = 'a_space', 'combined' = 'a_combo')
+
+  obj = pos_objs[grps]
+  obj = mget(obj)
 
   obj
 
