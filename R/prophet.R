@@ -71,19 +71,9 @@ prophet_rast = function(r, dates, ncores = 1, na.thresh = .25, outputs = c('yhat
 #' @param wotps named list. Optional. Passed to terra::app, terra::patches, and a possible call to terra::writeRaster. Options passed to writeRaster
 #' @return a list of rast(bricks)
 #' @export
-find_anomaly = function(yhat, base, thresh, groups = c('none', 'space', 'time', 'combined'), filename = NULL, overwrite = F, wopts = NULL){
+find_anomaly = function(yhat, base, thresh, groups = c('none', 'space', 'time', 'combined'), filename_prefix = NULL, overwrite = F, wopts = NULL){
   grps = match.arg(groups, c('none', 'space', 'time', 'combined'), several.ok = TRUE)
   stopifnot(thresh>0)
-
-  output_opts = function(fp, name = 'rast', overwrite, wopts){
-    if(is.null(fp)){
-      return(list(NULL, NULL, NULL))
-    }else{
-      return(list(file.path(fp, paste0(name, '.tif')),
-           overwrite,
-           wopts))
-    }
-  }
 
   # compute residuals and the associated standard deviation
   resid = yhat - base
@@ -104,11 +94,13 @@ find_anomaly = function(yhat, base, thresh, groups = c('none', 'space', 'time', 
     }
     at_oo = output_opts(filename_prefix, 'anomaly_time', overwrite, wopts)
     a_time_call = append(list(x = anomaly, fun = leadfun), at_oo)
+    a_time_call = a_time_call[!sapply(a_time_call, is.null)]
     a_time = do.call(app, a_time_call)
   }
   if(c('space', 'combined') %in% grps){
     as_oo = output_opts(filename_prefix, 'anomaly_space', overwrite,wopts)
     a_space_call = append(list(x = anomaly, zeroAsNA = TRUE), as_oo)
+    a_space_call = a_space_call[!sapply(a_space_call, is.null)]
     a_space = do.call(app, a_space_call)
     a_space = a_space >0
 
@@ -124,5 +116,19 @@ find_anomaly = function(yhat, base, thresh, groups = c('none', 'space', 'time', 
 
   obj
 
+}
+#' A function to format options for saving rasters while processing
+#' @param fp filepath prefix, including folder
+#' @param name output name
+#' @param overwrite logical. Optional. Passed to terra::writeRaster (or functions using it)
+#' @param wotps named list. Optional.  Options passed to writeRaster (or functions using it)
+output_opts = function(fp, name = 'rast', overwrite, wopts){
+  if(is.null(fp)){
+    return(NULL)
+  }else{
+    return(list(filename = file.path(fp, paste0(name, '.tif')),
+                overwrite = overwrite,
+                wopts = wopts))
+  }
 }
 

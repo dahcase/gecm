@@ -4,7 +4,9 @@
 #' @param harmonic_value numeric. Number of harmonics to consider.
 #' @param variable character. Name of the variable/result to return. See details for more information.
 #' @param window numeric. Size of the window of consideration. Chunks the input data cube into cubes with `window` layers/timesteps
-#' @param ... other methods
+#' @param filename_prefix file path. Optional. Passed to terra::app, terra::patches, and a possible call to terra::writeRaster. File name (including directory) prefix for output geotiffs
+#' @param overwrite logical. Optional. Passed to terra::app
+#' @param wotps named list. Optional. Passed to terra::app
 #'
 #'
 #' @details
@@ -19,7 +21,7 @@
 #'
 #' @importFrom terra nlyr
 #' @export
-harmonic <- function(r, harmonic_value = 2, variable = 'all', window = NULL, ...){
+harmonic <- function(r, harmonic_value = 2, variable = 'all', window = NULL, filename_prefix = NULL, overwrite = F, wopts = NULL){
 
   stopifnot(inherits(r, 'SpatRaster'))
 
@@ -44,7 +46,15 @@ harmonic <- function(r, harmonic_value = 2, variable = 'all', window = NULL, ...
     ras = terra::subset(r, x)
 
     #for each cell, compute the various doodads
-    ras = terra::app(ras, function(y) harmonic_regression(y, harmonic_value = harmonic_value, variable = variable))
+    if(!is.null(filename_prefix)){
+      ras = terra::app(ras, function(y) harmonic_regression(y, harmonic_value = harmonic_value, variable = variable),
+                       filename = file.path(filename_prefix, paste0(min(x),'-',max(x),'.tif')), overwrite = overwrite,
+                       wopts = wopts)
+
+    }else{
+      ras = terra::app(ras, function(y) harmonic_regression(y, harmonic_value = harmonic_value, variable = variable))
+
+    }
 
     ras
   })
