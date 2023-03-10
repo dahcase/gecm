@@ -103,7 +103,7 @@ find_anomaly = function(yhat, base, thresh = 1.65, groups = c('anomaly', 'space'
   }
   if(any(c('space', 'combined') %in% grps)){
     as_oo = output_opts(filename_prefix, 'anomaly_space', overwrite,wopts)
-    a_space_call = append(list(x = anomaly, zeroAsNA = TRUE), as_oo)
+    a_space_call = append(list(x = anomaly, zeroAsNA = FALSE), as_oo)
     a_space_call = a_space_call[!sapply(a_space_call, is.null)]
     a_space = do.call(terra::patches, a_space_call)
     a_space = a_space >0
